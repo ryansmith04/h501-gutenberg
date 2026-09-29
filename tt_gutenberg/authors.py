@@ -1,31 +1,13 @@
-from .transform import get_data
+from . import transform
 
 
 def list_authors(by_languages=True, alias=True):
-    data = get_data()
-    language_counts = (
-        data.groupby("gutenberg_author_id")["language"]
-        .nunique()
-        .reset_index(name="language_count")
-    )
-    authors = data[
-        [
-            "gutenberg_author_id",
-            "author",
-            "alias",
-        ]
-    ].drop_duplicates()
-    authors = authors.merge(
-        language_counts,
-        on="gutenberg_author_id",
-        how="left",
-    )
-
+    """List authors (or aliases) ordered by translation count."""
+    df = transform.get_data()
+    col = "alias" if alias else "author"
     if by_languages:
-        authors = authors.sort_values(
-            "language_count",
-            ascending=False,
-        )
-    if alias:
-        return authors["alias"].dropna().tolist()
-    return authors["author"].dropna().tolist()
+        counts = transform.count_languages(df, by=col)
+    else:
+        counts = df.dropna(subset=[col]).groupby(col)["gutenberg_id"].nunique() \
+                   .sort_values(ascending=False, kind="stable")
+    return counts.index.tolist()
