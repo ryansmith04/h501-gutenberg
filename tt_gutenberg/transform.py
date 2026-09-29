@@ -17,11 +17,16 @@ def get_data():
     """Merge the Gutenberg metadata with the authors table."""
     authors = load_table("author")
     metadata = load_table("metadata")
-    metadata = metadata.drop(columns=["author"], errors="ignore")
-    return metadata.merge(authors, on="gutenberg_author_id", how="inner")
+    # if both tables have an 'author' column, keep the one from authors
+    if "author" in metadata.columns and "author" in authors.columns:
+        metadata = metadata.drop(columns=["author"])
+    df = metadata.merge(authors, on="gutenberg_author_id", how="inner")
+    if "alias" in df.columns:
+        df["author_alias"] = df["alias"]
+    return df
 
 
-def count_languages(df, by="alias"):
+def count_languages(df, by="author_alias"):
     """Number of distinct languages per group, sorted high to low."""
     langs = df.dropna(subset=[by, "language"]).copy()
     langs["language"] = langs["language"].astype(str).str.split("/")
