@@ -1,16 +1,20 @@
-from .data import load_authors, load_metadata
+from .transform import get_data
 
 
 def list_authors(by_languages=True, alias=True):
-    authors = load_authors()
-    metadata = load_metadata()
-
+    data = get_data()
     language_counts = (
-        metadata.groupby("gutenberg_author_id")["language"]
+        data.groupby("gutenberg_author_id")["language"]
         .nunique()
         .reset_index(name="language_count")
     )
-
+    authors = data[
+        [
+            "gutenberg_author_id",
+            "author",
+            "alias",
+        ]
+    ].drop_duplicates()
     authors = authors.merge(
         language_counts,
         on="gutenberg_author_id",
@@ -18,9 +22,10 @@ def list_authors(by_languages=True, alias=True):
     )
 
     if by_languages:
-        authors = authors.sort_values("language_count", ascending=False)
-    
+        authors = authors.sort_values(
+            "language_count",
+            ascending=False,
+        )
     if alias:
         return authors["alias"].dropna().tolist()
-
-    return authors["author"].tolist()
+    return authors["author"].dropna().tolist()
